@@ -7,8 +7,9 @@ entering in their prior guesses to come up with the solution or a set of
 possible solutions.
 
 # Example
-In the scenario of a game where you have already made three guesses. They can be
-passed as arguments delimited by colons. The first part of an argument is the guess word.
+In this scenario you have already made three guesses. In order to find the
+solution, they can be passed to wordle-solver on the command-line as arguments
+with colons to delimit the parts. The first part of an argument is the guessed word.
 The second part of the argument is the set of matched letters. The third part of an
 argument is the matched letter positions.
 ```
