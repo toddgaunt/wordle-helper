@@ -1,29 +1,57 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
-	"os"
+	"io/ioutil"
 	"strings"
 	"unicode"
 )
 
-func findExist(word string) []rune {
-	var exists = make([]rune, 0)
-	for _, rn := range word {
-		if rn != '_' {
-			exists = append(exists, unicode.ToLower(rn))
+var nFlag = flag.Int("n", 6, "Number of guesses")
+var wordlistFlag = flag.String("wordlist", "", "Use a custom wordlist file")
+
+type Attempt struct {
+	word      string
+	unmatched []rune
+	matched   []rune
+	positions map[rune]int
+}
+
+func findUnmatched(word string, matched []rune, positions map[rune]int) []rune {
+	var unmatched = []rune{}
+
+	var letters = []rune(word)
+	for _, letter := range letters {
+		if !strings.ContainsRune(string(matched), letter) {
+			unmatched = append(unmatched, letter)
 		}
 	}
 
-	return exists
+	for k, v := range positions {
+		if []rune(word)[v] != k {
+			unmatched = append(unmatched, []rune(word)[v])
+		}
+	}
+
+	return unmatched
 }
 
-func findPosition(word string) map[rune]int {
-	var positions = make(map[rune]int)
+func findMatched(word string) []rune {
+	var matched = []rune{}
+	for _, rn := range word {
+		if rn != '_' {
+			matched = append(matched, unicode.ToLower(rn))
+		}
+	}
+
+	return matched
+}
+
+func findPositions(word string) map[rune]int {
+	var positions = map[rune]int{}
 	for i, rn := range word {
-		if unicode.IsUpper(rn) {
+		if rn != '_' && unicode.IsUpper(rn) {
 			positions[unicode.ToLower(rn)] = i
 		}
 	}
@@ -31,29 +59,24 @@ func findPosition(word string) map[rune]int {
 	return positions
 }
 
-func isPotentialSolution(word string, enteredWords []string, knownExist []rune, knownPosition map[rune]int) bool {
-	// If a word was already entered it can't be a possible solution.
-	for _, enteredWord := range enteredWords {
-		if word == enteredWord {
+func isPotentialSolution(word string, unmatched, matched []rune, positions map[rune]int) bool {
+	// Reject words that contain an unmatched letter.
+	for _, rn := range unmatched {
+		if strings.ContainsRune(word, rn) {
 			return false
 		}
 	}
 
-	// Reject words that don't contain a known existing letter.
-	for _, letter := range knownExist {
-		if !strings.ContainsRune(word, letter) {
+	// Reject words that don't contain a matched letter.
+	for _, rn := range matched {
+		if !strings.ContainsRune(word, rn) {
 			return false
 		}
-	}
-
-	var letters = make([]rune, len(word))
-	for i, rn := range word {
-		letters[i] = rn
 	}
 
 	// Reject words that don't have letters at a known position.
-	for k, v := range knownPosition {
-		if letters[v] != k {
+	for k, v := range positions {
+		if []rune(word)[v] != k {
 			return false
 		}
 	}
@@ -61,88 +84,83 @@ func isPotentialSolution(word string, enteredWords []string, knownExist []rune, 
 	return true
 }
 
-func ShowSolutions(enteredWords []string, knownExist []rune, knownPosition map[rune]int) bool {
-	var matches = make([]string, 0)
-	for _, word := range wordlist {
-		if isPotentialSolution(word, enteredWords, knownExist, knownPosition) {
-			matches = append(matches, word)
+func Solve(wordlist []string, attempts []Attempt) []string {
+	var unmatched = []rune{}
+	var matched = []rune{}
+	var positions = map[rune]int{}
+
+	// Combine the results of all attempts
+	for _, attempt := range attempts {
+		unmatched = append(unmatched, findUnmatched(attempt.word, attempt.matched, attempt.positions)...)
+		matched = append(matched, attempt.matched...)
+		for k, v := range attempt.positions {
+			positions[k] = v
 		}
 	}
-	fmt.Print("Entered words:")
-	for _, enteredWord := range enteredWords {
-		fmt.Printf(" %s", enteredWord)
-	}
-	//fmt.Println()
 
-	fmt.Print("Known letters:")
-	for _, letter := range knownExist {
-		fmt.Printf(" %c", letter)
-	}
-	fmt.Println()
-
-	fmt.Print("Known Positions:")
-	for k, v := range knownPosition {
-		fmt.Printf(" %c:%d", k, v)
-	}
-	fmt.Println()
-
-	if len(matches) == 1 {
-		fmt.Printf("The solution is: %s\n", matches[0])
-		return true
+	var solutions = []string{}
+	for _, word := range wordlist {
+		word = strings.ToLower(word)
+		if isPotentialSolution(word, unmatched, matched, positions) {
+			solutions = append(solutions, word)
+		}
 	}
 
-	if len(matches) == 0 {
-		fmt.Println("No solutions found!")
-		return false
-	}
-
-	fmt.Println("Possible solutions:")
-	for _, match := range matches {
-		fmt.Printf("%s\n", match)
-	}
-
-	return false
+	return solutions
 }
 
 func main() {
 	flag.Parse()
 
-	if flag.Arg(0) != "" {
-		var word = flag.Arg(0)
-		var knownExist = findExist(word)
-		var knownPosition = findPosition(word)
-
-		ShowSolutions([]string{word}, knownExist, knownPosition)
+	var guesses = []string{}
+	if len(flag.Args()) < *nFlag {
+		guesses = flag.Args()
 	} else {
-		var reader = bufio.NewReader(os.Stdin)
-		var enteredWords = make([]string, 0)
-		for {
-			fmt.Print("Enter a word: ")
-			word, err := reader.ReadString('\n')
-			if err != nil {
-				break
-			}
-			enteredWords = append(enteredWords, word)
+		guesses = flag.Args()[:*nFlag]
+	}
 
-			fmt.Print("Enter known letters: ")
-			exists, err := reader.ReadString('\n')
-			if err != nil {
-				break
-			}
+	wordlist := defaultWordlist
 
-			fmt.Print("Enter known letters at known positions ('_' is unknown): ")
-			positions, err := reader.ReadString('\n')
-			if err != nil {
-				break
-			}
+	if *wordlistFlag != "" {
+		fmt.Printf("Using wordlist %s", *wordlistFlag)
+		data, err := ioutil.ReadFile(*wordlistFlag)
+		if err != nil {
+		}
+		wordlist = strings.Split(string(data), "\n")
+	}
 
-			var knownExists = findExist(strings.TrimSuffix(exists, "\n"))
-			var knownPositions = findPosition(strings.ToUpper(strings.TrimSuffix(positions, "\n")))
+	var attempts = []Attempt{}
+	for _, guess := range guesses {
+		var parts = strings.Split(guess, ":")
+		var word, matched, positions string
+		if len(parts) == 1 {
+			word = strings.ToLower(parts[0])
+		} else if len(parts) == 2 {
+			word = strings.ToLower(parts[0])
+			matched = strings.ToLower(parts[1])
+		} else {
+			word = strings.ToLower(parts[0])
+			matched = strings.ToLower(parts[1])
+			positions = strings.ToLower(parts[2])
+		}
 
-			fmt.Println()
-			if ShowSolutions(enteredWords, knownExists, knownPositions) {
-				break
-			}
+		attempts = append(attempts, Attempt{
+			word:      strings.ToLower(word),
+			matched:   findMatched(strings.ToLower(matched)),
+			positions: findPositions(strings.ToUpper(positions)),
+		})
+	}
+
+	var solutions = Solve(wordlist, attempts)
+
+	if len(solutions) == 1 {
+		fmt.Printf("The solution is %s!\n", solutions[0])
+	} else if len(solutions) == 0 {
+		fmt.Println("No solution found!")
+	} else {
+		fmt.Println("Possible solutions:")
+		for _, solution := range solutions {
+			fmt.Printf("%s\n", solution)
 		}
 	}
 }

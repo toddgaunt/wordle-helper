@@ -1,6 +1,6 @@
 package main
 
-var wordlist = []string{
+var defaultWordlist = []string{
 	"aahed",
 	"aalii",
 	"aargh",
