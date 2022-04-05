@@ -15,7 +15,7 @@ corresponding to the guessed word. In the second part of the argument, a '_' cha
 means the letter was unmatched, a '-' means the letter was matched but in the wrong
 position, and a '+' means the letter was matched and in the correct position.
 ```
-% ./wordle-solver raise:___-_ mount:_---+ donut:_---+
+% ./wordle-solver raise:___-_ mount:_---+ donut:_--++
 The solution is snout!
 %
 ```
