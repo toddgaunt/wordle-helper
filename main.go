@@ -17,22 +17,22 @@ type Attempt struct {
 	matched []rune
 }
 
-func findUnmatchedLetters(word, matched []rune) []rune {
-	var letters = []rune{}
+func findUnmatchedLetters(word, matched []rune) map[rune]bool {
+	var letters = map[rune]bool{}
 	for i := 0; i < len(word) && i < len(matched); i++ {
 		if matched[i] != '-' && matched[i] != '+' {
-			letters = append(letters, unicode.ToLower(word[i]))
+			letters[unicode.ToLower(word[i])] = true
 		}
 	}
 
 	return letters
 }
 
-func findMatchedLetters(word, matched []rune) []rune {
-	var letters = []rune{}
+func findMatchedLetters(word, matched []rune) map[rune]bool {
+	var letters = map[rune]bool{}
 	for i := 0; i < len(word) && i < len(matched); i++ {
 		if matched[i] == '-' || matched[i] == '+' {
-			letters = append(letters, unicode.ToLower(word[i]))
+			letters[unicode.ToLower(word[i])] = true
 		}
 	}
 
@@ -63,16 +63,16 @@ func findUnmatchedPositions(word, matched []rune) map[rune][]int {
 	return positions
 }
 
-func isPotentialSolution(word string, matched, unmatched []rune, matchedPositions, unmatchedPositions map[rune][]int) bool {
+func isPotentialSolution(word string, matched, unmatched map[rune]bool, matchedPositions, unmatchedPositions map[rune][]int) bool {
 	// Reject words that contain an unmatched letter.
-	for _, rn := range unmatched {
-		if strings.ContainsRune(word, rn) {
+	for rn := range unmatched {
+		if strings.ContainsRune(word, rn) && matched[rn] != true {
 			return false
 		}
 	}
 
 	// Reject words that don't contain a matched letter.
-	for _, rn := range matched {
+	for rn := range matched {
 		if !strings.ContainsRune(word, rn) {
 			return false
 		}
@@ -100,15 +100,19 @@ func isPotentialSolution(word string, matched, unmatched []rune, matchedPosition
 }
 
 func Solve(wordlist []string, attempts []Attempt) []string {
-	var unmatchedLetters = []rune{}
-	var matchedLetters = []rune{}
+	var matchedLetters = map[rune]bool{}
+	var unmatchedLetters = map[rune]bool{}
 	var matchedPositions = map[rune][]int{}
 	var unmatchedPositions = map[rune][]int{}
 
 	// Combine the results of all attempts
 	for _, attempt := range attempts {
-		unmatchedLetters = append(unmatchedLetters, findUnmatchedLetters(attempt.guess, attempt.matched)...)
-		matchedLetters = append(matchedLetters, findMatchedLetters(attempt.guess, attempt.matched)...)
+		for k, v := range findMatchedLetters(attempt.guess, attempt.matched) {
+			matchedLetters[k] = v
+		}
+		for k, v := range findUnmatchedLetters(attempt.guess, attempt.matched) {
+			unmatchedLetters[k] = v
+		}
 		for k, v := range findMatchedPositions(attempt.guess, attempt.matched) {
 			matchedPositions[k] = append(matchedPositions[k], v...)
 		}
@@ -118,8 +122,16 @@ func Solve(wordlist []string, attempts []Attempt) []string {
 	}
 
 	if *debugFlag {
-		fmt.Printf("matched: %v\n", string(matchedLetters))
-		fmt.Printf("unmatched: %v\n", string(unmatchedLetters))
+		fmt.Printf("matched:")
+		for k := range matchedLetters {
+			fmt.Printf(" %c", k)
+		}
+		fmt.Println()
+		fmt.Printf("unmatched:")
+		for k := range unmatchedLetters {
+			fmt.Printf(" %c", k)
+		}
+		fmt.Println()
 		fmt.Printf("positions:")
 		for k, v := range matchedPositions {
 			fmt.Printf(" %c:%d", k, v)
