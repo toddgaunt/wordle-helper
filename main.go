@@ -8,7 +8,6 @@ import (
 	"unicode"
 )
 
-var nFlag = flag.Int("n", 6, "Number of guesses")
 var debugFlag = flag.Bool("debug", false, "Enable debug output")
 var wordlistFlag = flag.String("wordlist", "", "Use a custom wordlist file")
 
@@ -157,16 +156,9 @@ func Solve(wordlist []string, attempts []Attempt) []string {
 
 func main() {
 	flag.Parse()
-
-	var args = []string{}
-	if len(flag.Args()) < *nFlag {
-		args = flag.Args()
-	} else {
-		args = flag.Args()[:*nFlag]
-	}
+	args := flag.Args()
 
 	wordlist := defaultWordlist
-
 	if *wordlistFlag != "" {
 		fmt.Printf("Using wordlist %s", *wordlistFlag)
 		data, err := ioutil.ReadFile(*wordlistFlag)
