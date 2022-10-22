@@ -1,6 +1,6 @@
-[![Go](https://github.com/toddgaunt/wordle-helper/actions/workflows/go.yml/badge.svg)](https://github.com/toddgaunt/wordle-helper/actions/workflows/go.yml)
-
 # Wordle Helper
+
+[![Go](https://github.com/toddgaunt/wordle-helper/actions/workflows/go.yml/badge.svg)](https://github.com/toddgaunt/wordle-helper/actions/workflows/go.yml)
 
 A command-line utility for solving the [wordle](https://www.nytimes.com/games/wordle/index.html) game by the New York Times.
 This program can help a person find the solution to a wordle puzzle by providing the prior guesses entered into the puzzle.
