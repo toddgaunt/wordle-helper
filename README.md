@@ -1,3 +1,5 @@
+[![Go](https://github.com/toddgaunt/wordle-helper/actions/workflows/go.yml/badge.svg)](https://github.com/toddgaunt/wordle-helper/actions/workflows/go.yml)
+
 # Wordle Helper
 
 A command-line utility for solving the [wordle](https://www.nytimes.com/games/wordle/index.html) game by the New York Times.
