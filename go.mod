@@ -1,3 +1,3 @@
-module bastionburrow.com/tools/wordle-helper
+module github.com/toddgaunt/wordle-helper
 
-go 1.18
+go 1.19
